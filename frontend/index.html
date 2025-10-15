@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Catalog System</title>
+
+  <!-- 🌟 Bootstrap CDN -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <!-- 🌈 Custom Styles -->
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0f7fa, #fce4ec);
+      font-family: "Poppins", sans-serif;
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-weight: 700;
+      color: #2c3e50;
+    }
+
+    .card {
+      transition: all 0.3s ease;
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .card img {
+      border-radius: 15px 15px 0 0;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .form-section {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 40px;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      border: none;
+      transition: 0.3s;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+    .btn-success {
+      background-color: #28a745;
+      border: none;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      border: none;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    .product-price {
+      color: #007bff;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛍️ Product Catalog</h1>
+
+    <!-- 🧾 Product Form -->
+    <div class="form-section">
+      <form id="productForm">
+        <input type="hidden" id="productId" />
+
+        <div class="mb-3">
+          <label class="form-label">Product Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="name"
+            placeholder="Enter product name"
+            required
+          />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea
+            class="form-control"
+            id="description"
+            placeholder="Enter description"
+          ></textarea>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Price (₹)</label>
+            <input
+              type="number"
+              class="form-control"
+              id="price"
+              placeholder="Enter price"
+              required
+            />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Category</label>
+            <input
+              type="text"
+              class="form-control"
+              id="category"
+              placeholder="Enter category"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Product Image</label>
+          <input type="file" class="form-control" id="image" />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">
+          Add Product
+        </button>
+      </form>
+    </div>
+
+    <!-- 🧩 Product List -->
+    <div class="row mt-5" id="productList"></div>
+  </div>
+
+  <!-- 🧠 JS Script -->
+  <script>
+    const API_URL = "http://127.0.0.1:8000/products";
+    const form = document.getElementById("productForm");
+    const productList = document.getElementById("productList");
+
+    async function fetchProducts() {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      productList.innerHTML = "";
+
+      data.forEach((prod) => {
+        const card = document.createElement("div");
+        card.classList.add("col-md-4", "mb-4");
+        card.innerHTML = `
+          <div class="card h-100">
+            <img src="${
+              prod.image_url ? prod.image_url : "https://via.placeholder.com/250"
+            }" alt="${prod.name}" class="card-img-top">
+            <div class="card-body">
+              <h5 class="card-title">${prod.name}</h5>
+              <p class="card-text">${prod.description || ""}</p>
+              <p class="product-price">₹${prod.price}</p>
+              <p class="text-muted">${prod.category}</p>
+            </div>
+            <div class="card-footer text-center">
+              <button class="btn btn-success btn-sm me-2" onclick="editProduct('${
+                prod._id
+              }')">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteProduct('${
+                prod._id
+              }')">Delete</button>
+            </div>
+          </div>`;
+        productList.appendChild(card);
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append("name", document.getElementById("name").value);
+      formData.append("description", document.getElementById("description").value);
+      formData.append("price", document.getElementById("price").value);
+      formData.append("category", document.getElementById("category").value);
+      const imageFile = document.getElementById("image").files[0];
+      if (imageFile) formData.append("image", imageFile);
+
+      const productId = document.getElementById("productId").value;
+
+      if (productId) {
+        await fetch(`${API_URL}/${productId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.get("name"),
+            description: formData.get("description"),
+            price: parseFloat(formData.get("price")),
+            category: formData.get("category"),
+          }),
+        });
+        alert("✅ Product Updated!");
+      } else {
+        await fetch(API_URL, {
+          method: "POST",
+          body: formData,
+        });
+        alert("✅ Product Added!");
+      }
+
+      form.reset();
+      document.getElementById("productId").value = "";
+      fetchProducts();
+    });
+
+    async function deleteProduct(id) {
+      if (confirm("Delete this product?")) {
+        await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        alert("🗑️ Product Deleted!");
+        fetchProducts();
+      }
+    }
+
+    async function editProduct(id) {
+      const res = await fetch(`${API_URL}/${id}`);
+      const data = await res.json();
+      document.getElementById("productId").value = id;
+      document.getElementById("name").value = data.name;
+      document.getElementById("description").value = data.description;
+      document.getElementById("price").value = data.price;
+      document.getElementById("category").value = data.category;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    fetchProducts();
+  </script>
+</body>
+</html>
